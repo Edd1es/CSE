@@ -1,0 +1,130 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h> // for sqrt()
+#include <time.h>
+#include <string.h>
+
+#define LEADERBOARD_SIZE 5
+#define FILENAME "leaderboard.txt"
+
+// Struct to hold player information
+typedef struct {
+	char name[50];
+	int guesses;
+} Player;
+
+
+void PlayGuessingGame(Player *currentPlayer)
+{
+	// Generate a random number between 10 and 100 and find its square root
+	srand((unsigned int)time(NULL)); // Seed rand with current time
+	int numberToGuess = rand() % 91 + 10;
+	double squareRoot = sqrt(numberToGuess);
+	printf("%.8f is the square root of what number?", squareRoot);
+	int guess;
+	while (1) {
+		guess = GetGuess();
+		currentPlayer->guesses++; // Increment guess counter
+		if (guess < numberToGuess) {
+			printf("Too low, guess again: ");
+		}
+		else if (guess > numberToGuess) {
+			printf("Too high, guess again: ");
+		}
+		else {
+			printf("You got it, baby!\n");
+			printf("You made %d guesses.\n", currentPlayer->guesses);
+			break;
+		}
+	}
+}
+
+void UpdateLeaderboard(Player leaders[], Player* currentPlayer) {
+	// Check if the player qualifies for the leaderboard
+	for (int i = 0; i < LEADERBOARD_SIZE; i++) {
+		if (leaders[i].guesses == 0 || currentPlayer->guesses < leaders[i].guesses) {
+			// Insert currentPlayer into the leaderboard
+			for (int j = LEADERBOARD_SIZE - 1; j > i; j--) {
+				leaders[j] = leaders[j - 1]; // Shift down
+			}
+			leaders[i] = *currentPlayer; // Insert new leader
+			break;
+		}
+	}
+
+	// Display the updated leaderboard
+	printf("Here are the current leaders:\n");
+	for (int i = 0; i < LEADERBOARD_SIZE && leaders[i].guesses > 0; i++) {
+		printf("%s made %d guesses\n", leaders[i].name, leaders[i].guesses);
+	}
+}
+
+// Function to load the leaderboard from a file
+void LoadLeaderboard(Player leaders[]) {
+	FILE* file = fopen(FILENAME, "r");
+	if (file != NULL) {
+		for (int i = 0; i < LEADERBOARD_SIZE; i++) {
+			fscanf(file, "%s %d", leaders[i].name, &leaders[i].guesses);
+		}
+		fclose(file);
+	}
+}
+
+// Function to save the leaderboard to a file
+void SaveLeaderboard(Player leaders[]) {
+	FILE* file = fopen(FILENAME, "w");
+	if (file != NULL) {
+		for (int i = 0; i < LEADERBOARD_SIZE; i++) {
+			if (leaders[i].guesses > 0) {
+				fprintf(file, "%s %d\n", leaders[i].name, leaders[i].guesses);
+			}
+		}
+		fclose(file);
+	}
+}
+
+int GetGuess()
+{
+	int guess;
+	printf("Guess a value between 10 and 100: ");
+	int num_values = scanf("%d", &guess);
+	while (getchar() != '\n'); // clear buffer
+	// re-prompt if user enters invalid guess
+	while (num_values != 1 || guess < 10 || guess > 100)
+	{
+		printf("Make sure your guess is between 10 and 100: ");
+		num_values = scanf("%d", &guess);
+		while (getchar() != '\n'); // clear buffer
+	}
+	return guess;
+}
+
+
+int main()
+{
+	Player leaders[LEADERBOARD_SIZE] = { {"", 0} };
+	LoadLeaderboard(leaders); // Load leaderboard from file if it exists
+	printf("Welcome! Press 'q' to quit or any other key to continue:\n");
+	char c, game_over = 0;
+	while (!game_over)
+	{
+		scanf(" %c", &c);
+		if (c == 'q')
+		{
+			game_over = 1;
+			SaveLeaderboard(leaders); // Save leaderboard when quitting
+			printf("Bye Bye!\n");
+		}
+		else
+		{
+			Player currentPlayer;
+			printf("Please enter your name to start: ");
+			scanf("%s", currentPlayer.name); // Read player's name
+			currentPlayer.guesses = 0; // Initialize guess count
+			PlayGuessingGame(&currentPlayer);
+			UpdateLeaderboard(leaders, &currentPlayer); // Update leaderboard
+			printf("Press 'q' to quit or any other key to continue:\n");
+		}
+	}
+	return 0;
+}
